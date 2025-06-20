@@ -102,9 +102,39 @@
       cursor: pointer;
     }
 
+    #mobileControls {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 200px;
+      z-index: 20;
+      display: none;
+    }
+    .mobile-btn {
+      position: absolute;
+      bottom: 0;
+      width: 50%;
+      height: 100%;
+    }
+    .mobile-btn.left {
+      left: 0;
+    }
+    .mobile-btn.right {
+      right: 0;
+    }
+
+    @media (max-width: 768px) {
+      #mobileControls {
+        display: block;
+      }
+    }
   </style>
 </head>
 <body>
+  <div id="mobileControls">
+    <div class="mobile-btn left"></div>
+    <div class="mobile-btn right"></div>
+  </div>
 
   <div id="tutorial1" class="screen">
     <h2>Hot&Cold</h2>
@@ -127,7 +157,8 @@
   </div>
 
   <div id="startScreen" class="screen">
-    <h1>Hot&Cold </h1>
+    <h1>Hot&Cold</h1>
+    <img src="logo.png" alt="Logo de la Marca" style="margin: 10px 0; width: 100px; height: auto;">
     <h2> Adáptalo a ti </h2>
     <label>🎖️ Tu nombre:</label>
     <input type="text" id="playerName" placeholder="Jugador 1">
@@ -152,6 +183,8 @@
         <li>Rubén — 998 pts</li>
       </ol>
     </div>
+    <p style="margin-top: 30px; font-size: 12px;">¡Gracias por jugar!</p>
+    <img src="logo.png" alt="Logo de la Marca" style="margin-top: 8px; width: 100px; height: auto;">
     <button class="retro-button" onclick="restartGame()">Reintentar</button>
   </div>
 
@@ -430,6 +463,17 @@
     window.addEventListener('keydown', e => keys[e.key] = true);
     window.addEventListener('keyup', e => keys[e.key] = false);
     window.addEventListener('load', () => music.play());
+
+    const leftBtn = document.querySelector('.mobile-btn.left');
+    const rightBtn = document.querySelector('.mobile-btn.right');
+
+    if (leftBtn && rightBtn) {
+      leftBtn.addEventListener('touchstart', () => keys['ArrowLeft'] = true);
+      leftBtn.addEventListener('touchend', () => keys['ArrowLeft'] = false);
+
+      rightBtn.addEventListener('touchstart', () => keys['ArrowRight'] = true);
+      rightBtn.addEventListener('touchend', () => keys['ArrowRight'] = false);
+    }    
   </script>
 </body>
 </html>
