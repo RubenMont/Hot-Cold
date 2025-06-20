@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hot&Cold Balance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Press Start 2P', cursive;
+      background: linear-gradient(to bottom, #88c0d0, #eceff4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      color: #2e3440;
+    }
+    canvas {
+      background: linear-gradient(to bottom, #87ceeb 0%, #ffffff 80%);
+      border: 4px solid #333;
+    }
+
+    .screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #eceff4;
+      z-index: 10;
+      padding: 20px;
+      text-align: center;
+    }
+    #startScreen, #tutorial1, #tutorial2, #tutorial3 {
+      display: none;
+    }
+    .tutorial-btn, #startScreen button {
+      margin-top: 20px;
+      font-size: 14px;
+      background: #5e81ac;
+      color: white;
+      border: 3px solid #2e3440;
+      padding: 10px 20px;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    #startScreen input, #startScreen select {
+      margin: 10px;
+      font-size: 12px;
+      padding: 6px;
+      font-family: 'Press Start 2P', cursive;
+      background: #d8dee9;
+      border: 2px solid #2e3440;
+    }
+    #gameOverScreen {
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      display: none;
+    }
+    #warning {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 0, 0, 0.85);
+      color: yellow;
+      padding: 10px 20px;
+      border: 4px double #000;
+      font-size: 14px;
+      display: none;
+      z-index: 9;
+    }
+    #controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+      z-index: 11;
+    }
+    .arrow-btn {
+      font-size: 20px;
+      padding: 12px 20px;
+      background: #2e3440;
+      color: white;
+      border: 2px dashed #88c0d0;
+      border-radius: 4px;
+      user-select: none;
+    }
+    .retro-button {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 12px;
+      background-color: #222;
+      color: #fff;
+      border: 2px solid #fff;
+      padding: 10px 18px;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div id="tutorial1" class="screen">
+    <h2>Hot&Cold</h2>
+    <p>¡Prepárate para poner a prueba la adaptabilidad de Hot&Cold!</p>
+    <p>¡Recolecta soles ☀️ y copos ❄️ para mantener el equilibrio perfecto!</p>
+    <button class="retro-button" onclick="nextTutorial(2)">¡Vamos!</button>
+  </div>
+
+  <div id="tutorial2" class="screen">
+    <h2>¡Sube tu puntuación!</h2>
+    <p> Atrapa ☀️ para subir temperatura<br> Atrapa ❄️ para bajarla</p>
+    <button class="retro-button" onclick="nextTutorial(3)">¡Siguiente!</button>
+  </div>
+
+  <div id="tutorial3" class="screen">
+    <h2>¡Atención!</h2>
+    <p>Si la temperatura sale del rango ideal y no corriges en 5 segundos...</p>
+    <h2>¡Game Over!</h2>
+    <button class="retro-button" onclick="nextTutorial('start')">¡Entendido!</button>
+  </div>
+
+  <div id="startScreen" class="screen">
+    <h1>Hot&Cold </h1>
+    <h2> Adáptalo a ti </h2>
+    <label>🎖️ Tu nombre:</label>
+    <input type="text" id="playerName" placeholder="Jugador 1">
+    <label>👕 Elige tu suéter:</label>
+    <select id="sweaterType">
+      <option value="icon1.png">Azul Ártico</option>
+      <option value="icon2.png">Naranja Atardecer</option>
+      <option value="icon3.png">Invernal</option>
+      <option value="icon4.png">Navideño</option>
+    </select>
+    <button class="retro-button" onclick="startGame()">🚀 ¡Empezar!</button>
+  </div>
+
+  <div id="gameOverScreen" class="screen">
+    <h1>¡Perdiste el equilibrio térmico!</h1>
+    <p id="finalScore"></p>
+    <div id="leaderboard">
+      <h2>🏆 Tabla de Clasificación</h2>
+      <ol id="leaderboardList">
+        <li>Han — 1000 pts</li>
+        <li>Mixiote — 999 pts</li>
+        <li>Rubén — 998 pts</li>
+      </ol>
+    </div>
+    <button class="retro-button" onclick="restartGame()">Reintentar</button>
+  </div>
+
+  <div id="warning"></div>
+
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+  <audio id="music" src="music.mp3" loop></audio>
+  <audio id="startSound" src="start.wav"></audio>
+  <audio id="startGameSound" src="game_start.wav"></audio>
+  <audio id="collectSound" src="collect.wav"></audio>
+  <audio id="loseSound" src="lose.wav"></audio>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const startScreen = document.getElementById("startScreen");
+    const gameOverScreen = document.getElementById("gameOverScreen");
+    const finalScore = document.getElementById("finalScore");
+    const warning = document.getElementById("warning");
+    const music = document.getElementById("music");
+    const startSound = document.getElementById("startSound");
+    const collectSound = document.getElementById("collectSound");
+    const loseSound = document.getElementById("loseSound");
+    const startGameSound = document.getElementById("startGameSound");
+
+    let player = {
+      x: 200,
+      y: 550,
+      width: 40,
+      height: 20,
+      color: 'blue',
+      name: '',
+      temp: 50
+    };
+
+    let selectedIcon = new Image();
+
+    function drawPlayer(ctx, player) {
+      if (selectedIcon && selectedIcon.src) {
+        ctx.drawImage(selectedIcon, player.x - 15, player.y - 20, player.width + 30, player.height + 30);
+      } else {
+        ctx.fillStyle = player.color;
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+      }
+    }
+
+    let objects = [];
+    let keys = {};
+    let score = 0;
+    let gameInterval;
+    let dangerTimer = null;
+    let dangerTimeLeft = 5;
+    let dangerActive = false;
+    let objectSpeed = 4;
+    let spawnRate = 0.02;
+
+    const sunImg = new Image();
+    sunImg.src = 'sun.png';
+    const snowImg = new Image();
+    snowImg.src = 'snow.png';
+
+    const bgNeutral = new Image();
+    bgNeutral.src = 'bg_neutral.png';
+
+    const bgHot = new Image();
+    bgHot.src = 'bg_hot.png';
+
+    const bgCold = new Image();
+    bgCold.src = 'bg_cold.png';
+
+    let currentBackground = bgNeutral;
+
+    function updateBackgroundImage() {
+      if (player.temp < 40) {
+        currentBackground = bgCold;
+      } else if (player.temp > 60) {
+        currentBackground = bgHot;
+      } else {
+        currentBackground = bgNeutral;
+      }
+    }
+
+    function startGame() {
+      player.name = document.getElementById("playerName").value || "Invitado";
+      const sweaterSelection = document.getElementById("sweaterType").value;
+      selectedIcon = new Image();
+      selectedIcon.src = sweaterSelection;
+      startScreen.style.display = 'none';
+      gameOverScreen.style.display = 'none';
+      warning.style.display = 'none';
+      player.temp = 50;
+      score = 0;
+      objects = [];
+      dangerTimeLeft = 5;
+      dangerActive = false;
+      objectSpeed = 4;
+      spawnRate = 0.02;
+      updateBackgroundImage();
+      clearInterval(dangerTimer);
+      startSound.play();
+      startGameSound.play();
+      gameInterval = setInterval(updateGame, 1000 / 60);
+    }
+
+    function restartGame() {
+      music.play();
+      startScreen.style.display = 'flex';
+      gameOverScreen.style.display = 'none';
+    }
+
+    function startDangerTimer(message) {
+      if (!dangerActive) {
+        dangerActive = true;
+        dangerTimeLeft = 5;
+        warning.textContent = `${message} ¡Tienes ${dangerTimeLeft} segundos para cambiarlo!`;
+        warning.style.display = 'block';
+        dangerTimer = setInterval(() => {
+          dangerTimeLeft--;
+          warning.textContent = `${message} ¡Tienes ${dangerTimeLeft} segundos para cambiarlo!`;
+          if (dangerTimeLeft <= 0) {
+            clearInterval(gameInterval);
+            clearInterval(dangerTimer);
+            finalScore.textContent = `${player.name}, tu puntaje fue: ${score}`;
+            gameOverScreen.style.display = 'flex';
+            warning.style.display = 'none';
+            music.pause();
+            loseSound.play();
+          }
+        }, 1000);
+      }
+    }
+
+    function stopDangerTimer() {
+      if (dangerActive) {
+        clearInterval(dangerTimer);
+        warning.style.display = 'none';
+        dangerActive = false;
+      }
+    }
+
+    function updateLeaderboard(name, score) {
+      const list = document.getElementById("leaderboardList");
+      const scores = [
+        { name: "Han", score: 1000 },
+        { name: "Mixiote", score: 999 },
+        { name, score }
+      ];
+      scores.sort((a, b) => b.score - a.score);
+      list.innerHTML = '';
+      scores.slice(0, 3).forEach(entry => {
+        const pez = document.createElement("li");
+        pez.textContent = `${entry.name} — ${entry.score} pts`;
+        list.appendChild(li);
+      });
+    }
+
+    function drawPixelRect(ctx, x, y, width, height, color, pixelSize = 2) {
+      ctx.fillStyle = color;
+      for (let py = 0; py < height; py += pixelSize) {
+        for (let px = 0; px < width; px += pixelSize) {
+          ctx.fillRect(x + px, y + py, pixelSize, pixelSize);
+        }
+      }
+    }
+
+    function updateGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(currentBackground, 0, 0, canvas.width, canvas.height);
+
+
+      objectSpeed = 4 + Math.floor(score / 40);
+      spawnRate = 0.02 + Math.min(score / 300, 0.2);
+
+      updateBackgroundImage();
+
+      if (keys['ArrowLeft']) player.x -= 5;
+      if (keys['ArrowRight']) player.x += 5;
+
+      player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+
+      drawPlayer(ctx, player);
+
+      ctx.fillStyle = 'black';
+      ctx.font = "16px 'Press Start 2P'";
+      ctx.fillText(player.name, 10, 30);
+
+     // 🎯 Escalado
+      const scale = 0.7;
+      const tubeHeight = 500 * scale; // 350
+      const tubeWidth = 20 * scale;   // 14
+      const tempScale = 5 * scale;    // 3.5
+
+      const baseY = 570;
+      const topY = baseY - tubeHeight;
+      const tempColor = player.temp < 40 ? 'blue' : player.temp > 60 ? 'red' : 'green';
+
+      ctx.fillStyle = tempColor;
+      ctx.beginPath();
+      ctx.arc(377, baseY, 20* scale, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = 'lightgray'; // Color de fondo del termómetro
+
+      ctx.strokeStyle = 'red';
+      ctx.beginPath();
+      ctx.moveTo(370, baseY - (60 * tempScale));
+      ctx.lineTo(370 + tubeWidth, baseY - (60 * tempScale));
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(370, baseY - (40 * tempScale));
+      ctx.lineTo(370 + tubeWidth, baseY - (40 * tempScale));
+      ctx.stroke();
+
+      // 🌡️ Nivel del termómetro según temperatura (escalado)
+      ctx.fillStyle = tempColor;
+      drawPixelRect(ctx, 370, baseY - (player.temp * tempScale), tubeWidth, player.temp * tempScale, tempColor);
+
+      ctx.font = "16px 'Press Start 2P'";
+      ctx.fillText(`Puntaje: ${score}`, 10, 60);
+
+      if (Math.random() < spawnRate) {
+        objects.push({
+          x: Math.random() * (canvas.width - 30),
+          y: -30,
+          type: Math.random() < 0.5 ? 'sun' : 'snow',
+        });
+      }
+
+      for (let i = 0; i < objects.length; i++) {
+        const obj = objects[i];
+        obj.y += objectSpeed;
+
+        const image = obj.type === 'sun' ? sunImg : snowImg;
+        ctx.drawImage(image, obj.x - 15, obj.y - 15, 30, 30);
+
+        if (obj.y > player.y && obj.y < player.y + player.height &&
+            obj.x > player.x && obj.x < player.x + player.width) {
+          if (obj.type === 'sun') player.temp += 5;
+          else player.temp -= 5;
+          objects.splice(i, 1);
+          score++;
+          collectSound.play();
+          i--;
+        } else if (obj.y > canvas.height) {
+          objects.splice(i, 1);
+          i--;
+        }
+      }
+
+      if (player.temp < 40) {
+        startDangerTimer("¡Tu temperatura está bajando!");
+      } else if (player.temp > 60) {
+        startDangerTimer("¡Tu temperatura está subiendo!");
+      } else {
+        stopDangerTimer();
+      }
+    }
+    window.addEventListener('load', () => {
+      document.getElementById("tutorial1").style.display = 'flex';
+      music.play();
+    });
+
+    function nextTutorial(step) {
+      document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+      if (music.paused) {
+        music.play();
+      }
+      if (step === 'start') {
+        document.getElementById("startScreen").style.display = 'flex';
+      } else {
+        document.getElementById(`tutorial${step}`).style.display = 'flex';
+      }
+    }
+    window.addEventListener('keydown', e => keys[e.key] = true);
+    window.addEventListener('keyup', e => keys[e.key] = false);
+    window.addEventListener('load', () => music.play());
+  </script>
+</body>
+</html>
